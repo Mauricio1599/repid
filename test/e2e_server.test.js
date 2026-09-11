@@ -351,3 +351,63 @@ describe('Servidor prototipo — reset del demo', () => {
     expect(prof.body.avg).toBe('4.0');
   });
 });
+
+// TASK-033 — demo alojada: con REPID_AUTO_DEMO=1 el server (solo Mock)
+// arranca ya poblado con el flujo completo, sin que nadie haga clic.
+describe('auto-demo al arranque (TASK-033)', () => {
+  const PORT2 = 5000 + Math.floor(Math.random() * 9000);
+  const BASE2 = `http://localhost:${PORT2}`;
+  const DIR2 = mkdtempSync(join(tmpdir(), 'repid-e2e-autodemo-'));
+  let server2;
+
+  async function waitUp2(attempts = 60) {
+    for (let i = 0; i < attempts; i += 1) {
+      try {
+        const res = await fetch(`${BASE2}/api/facts`);
+        if (res.ok) return;
+      } catch { /* aún no levanta */ }
+      await new Promise((r) => setTimeout(r, 250));
+    }
+    throw new Error('El servidor con auto-demo no respondió');
+  }
+
+  beforeAll(async () => {
+    server2 = spawn(process.execPath, ['server/index.js'], {
+      cwd: ROOT,
+      env: {
+        ...process.env,
+        PORT: String(PORT2),
+        REPID_DATA_DIR: DIR2,
+        REPID_AUTO_DEMO: '1',
+      },
+      stdio: ['ignore', 'pipe', 'pipe'],
+    });
+    await waitUp2();
+    // La demo corre de forma asíncrona tras el listen; esperamos hechos.
+    for (let i = 0; i < 40; i += 1) {
+      const f = await fetch(`${BASE2}/api/facts`).then((r) => r.json());
+      if (f.length >= 7) break;
+      await new Promise((r) => setTimeout(r, 250));
+    }
+  }, 30_000);
+
+  afterAll(() => {
+    if (server2) server2.kill();
+    rmSync(DIR2, { recursive: true, force: true });
+  });
+
+  it('puebla el flujo completo sin intervención (7 hechos)', async () => {
+    const r = await fetch(`${BASE2}/api/facts`).then((res) => res.json());
+    const counts = {};
+    for (const fact of r) counts[fact.type] = (counts[fact.type] || 0) + 1;
+    expect(counts.IDENTITY_GENESIS).toBe(1);
+    expect(counts.RECEIPT_GENESIS).toBe(2);
+    expect(counts.RATING_ISSUED).toBe(2);
+    expect(counts.PLATFORM_CONFIRMATION).toBe(1);
+    expect(counts.TRUST_LINK).toBe(1);
+    expect(r.length).toBe(7);
+
+    const wallets = await fetch(`${BASE2}/api/wallets`).then((res) => res.json());
+    expect(wallets).toHaveLength(3);
+  });
+});

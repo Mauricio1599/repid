@@ -268,7 +268,7 @@ Hasta acá todo corrió en una **cadena simulada**. También existe un modo que 
 
 ## 8) Referencia rápida de comandos
 
-Origen recomendado para **probarlo en segundos**: clic en «Reproducir demo» y después pestaña «Reputación» → una wallet → «Ver perfil».
+Origen recomendado para **probarlo en segundos**: clic en «Reproducir demo» y después pestaña «Reputación» → una wallet → «Ver perfil». O directo en la **demo alojada** (TASK-033): un visitante que no quiera instalar nada puede probar el sistema desplegado en Render — que arranca **ya poblado** con los 7 hechos del flujo completo (`REPID_AUTO_DEMO=1`).
 
 | Qué querés hacer | Comando |
 |---|---|

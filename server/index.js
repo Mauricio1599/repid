@@ -734,60 +734,65 @@ app.get('/api/reputation/:pkh', (req, res) => {
 // introducir ninguna forma nueva. Sirve para que un visitante vea el
 // sistema vivo y la vista indexer con tráfico hex de un vistazo.
 
+async function runDemo() {
+  // Chipnet (TASK-026): la demo corre igual que en mock, pero las wallets
+  // que crea nacen vacías — la wallet fondeada con tBCH la financia vía
+  // transferencias P2PKH→P2PKH (20k sats c/u: varias txs de génesis y
+  // gastos con margen de sobra).
+  let funderPkh = null;
+  if (useChipnet) {
+    for (const w of wallets.values()) {
+      const utxos = await provider.getUtxos(w.address);
+      if (utxos.some((u) => !u.token)) { funderPkh = w.pkhHex; break; }
+    }
+    if (!funderPkh) {
+      const err = new Error('Fundá primero una wallet con tBCH (faucet tbch.googol.cash) para poder pagar las comisiones de la demo');
+      err.status = 409;
+      throw err;
+    }
+  }
+  const a = createWallet();
+  const b = createWallet();
+  const platform = createWallet();
+  if (funderPkh) {
+    for (const w of [a, b, platform]) {
+      await transferSats(funderPkh, w.pkhHex, 20_000n);
+    }
+  }
+
+  await mintIdentity(a.pkhHex);
+
+  const itx1 = await createInteraction(
+    { pkh: a.pkhHex, role: 'pasajero' },
+    { pkh: b.pkhHex, role: 'conductor' },
+  );
+  const itx2 = await createInteraction(
+    { pkh: b.pkhHex, role: 'comprador' },
+    { pkh: a.pkhHex, role: 'vendedor' },
+  );
+
+  // txs, outpoint txid:1 = Rating Right del partyA (la que califica al B).
+  await issueRating(itx1.ratingRights[0].outpoint, a.pkhHex, 5);
+  await issueRating(itx2.ratingRights[0].outpoint, b.pkhHex, 4);
+
+  await platformConfirm(platform.pkhHex, itx1.txid);
+  await createTrustLink(a.pkhHex, b.pkhHex);
+
+  return {
+    wallets: wallets.size,
+    identities: identitiesByPkh.size,
+    interactions: interactionsByTxid.size,
+    ratings: facts.filter((f) => f.type === 'RATING_ISSUED').length,
+    confirmations: facts.filter((f) => f.type === 'PLATFORM_CONFIRMATION').length,
+    trustLinks: facts.filter((f) => f.type === 'TRUST_LINK').length,
+    facts: facts.length,
+  };
+}
+
 app.post('/api/demo/run', async (req, res, next) => {
   try {
-    // Chipnet (TASK-026): la demo corre igual que en mock, pero las wallets
-    // que crea nacen vacías — la wallet fondeada con tBCH la financia vía
-    // transferencias P2PKH→P2PKH (20k sats c/u: varias txs de génesis y
-    // gastos con margen de sobra).
-    let funderPkh = null;
-    if (useChipnet) {
-      for (const w of wallets.values()) {
-        const utxos = await provider.getUtxos(w.address);
-        if (utxos.some((u) => !u.token)) { funderPkh = w.pkhHex; break; }
-      }
-      if (!funderPkh) {
-        const err = new Error('Fundá primero una wallet con tBCH (faucet tbch.googol.cash) para poder pagar las comisiones de la demo');
-        err.status = 409;
-        throw err;
-      }
-    }
-    const a = createWallet();
-    const b = createWallet();
-    const platform = createWallet();
-    if (funderPkh) {
-      for (const w of [a, b, platform]) {
-        await transferSats(funderPkh, w.pkhHex, 20_000n);
-      }
-    }
-
-    await mintIdentity(a.pkhHex);
-
-    const itx1 = await createInteraction(
-      { pkh: a.pkhHex, role: 'pasajero' },
-      { pkh: b.pkhHex, role: 'conductor' },
-    );
-    const itx2 = await createInteraction(
-      { pkh: b.pkhHex, role: 'comprador' },
-      { pkh: a.pkhHex, role: 'vendedor' },
-    );
-
-    // txs, outpoint txid:1 = Rating Right del partyA (la que califica al B).
-    await issueRating(itx1.ratingRights[0].outpoint, a.pkhHex, 5);
-    await issueRating(itx2.ratingRights[0].outpoint, b.pkhHex, 4);
-
-    await platformConfirm(platform.pkhHex, itx1.txid);
-    await createTrustLink(a.pkhHex, b.pkhHex);
-
-    res.status(201).json({
-      wallets: wallets.size,
-      identities: identitiesByPkh.size,
-      interactions: interactionsByTxid.size,
-      ratings: facts.filter((f) => f.type === 'RATING_ISSUED').length,
-      confirmations: facts.filter((f) => f.type === 'PLATFORM_CONFIRMATION').length,
-      trustLinks: facts.filter((f) => f.type === 'TRUST_LINK').length,
-      facts: facts.length,
-    });
+    const summary = await runDemo();
+    res.status(201).json(summary);
   } catch (err) { next(err); }
 });
 
@@ -828,8 +833,24 @@ app.use((err, req, res, next) => { // eslint-disable-line no-unused-vars
 loadWalletsFromDisk();
 loadStateFromDisk();
 
+// Demo alojada (TASK-033): con REPID_AUTO_DEMO=1 el prototipo arranca ya
+// poblado con el flujo completo (solo modo Mock), para que un visitante de
+// una demo desplegada encuentre el sistema vivo en la primera pantalla sin
+// tener que hacer clic. En Chipnet nunca se auto-ejecuta: exige tBCH real.
+function maybeAutoDemo() {
+  const auto = (process.env.REPID_AUTO_DEMO || '').toLowerCase();
+  const requested = auto === '1' || auto === 'true' || auto === 'yes';
+  if (!useChipnet && requested) {
+    runDemo().then(
+      (s) => console.log(`Auto-demo lista: ${s.facts} hechos (${s.wallets} wallets, ${s.identities} identidades, ${s.ratings} calificaciones).`),
+      (err) => console.error('Auto-demo falló:', err.message),
+    );
+  }
+}
+
 app.listen(PORT, () => {
   console.log(`RepID — prototipo corriendo (${useChipnet ? 'red real CHIPNET vía worker aislado' : 'red simulada MOCK'}). Abrí la interfaz en tu navegador:`);
   console.log(`  http://localhost:${PORT}`);
   console.log('Cerrá el servidor con Ctrl+C cuando termines de probar.');
+  maybeAutoDemo();
 });

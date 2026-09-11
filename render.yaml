@@ -1,0 +1,25 @@
+# RepID — demo alojada (Render.com, Microsoft free tier)
+#
+# Deploy en 1 clic: entrá a https://dashboard.render.com/new, elegí
+# «Blueprint», conectá el repo (Mauricio1599/repid) y Render lee este
+# archivo solo. Sirve la demo del prototipo en modo MOCK (red simulada,
+# sin tBCH ni claves reales) para que un visitante pueda probar RepID sin
+# instalar nada.
+
+services:
+  - type: web
+    name: repid
+    runtime: node
+    repo: https://github.com/Mauricio1599/repid
+    plan: free
+    autoDeploy: true
+    healthCheckPath: /api/facts
+    envVars:
+      - key: REPID_NETWORK
+        value: mock
+      - key: REPID_AUTO_DEMO
+        value: "1"
+      - key: NODE_ENV
+        value: production
+    buildCommand: npm ci
+    startCommand: node server/index.js

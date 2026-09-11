@@ -282,3 +282,12 @@
 > - Sin fondos, el script corta con código 2 tras mostrar la dirección a fondear (igual que local); el artifact queda guardado para la reintentada.
 >
 > **Verificación**: run real (34560157789) en GitHub — wallet creada en Chipnet (`bchtest:zpu3kqx9du5hnv…`), saldos consultados on-chain, y corte controlado con **exit code 2** y dirección a fondear. Comportamiento esperado: validar el cableado integro (server chipnet → provider → worker → script). Con tBCH en el artifact, un reintento corre el flujo completo 11/11 PASS.
+
+- [x] **TASK-033** [RFC-005] **Demo alojada**: el prototipo es desplegable en 1 clic para que un visitante pruebe RepID sin instalarse nada, y arranca ya poblado con el flujo completo. *(Ejecutado 2026-09-11.)*
+
+> **Implementado:**
+> - `render.yaml` (blueprint de Render.com, plan free): service web Node, `REPID_NETWORK=mock`, build `npm ci`, start `node server/index.js`, health check sobre `/api/facts`. Deploy en 1 clic desde `dashboard.render.com/new` → Blueprint → repo `Mauricio1599/repid`.
+> - **`REPID_AUTO_DEMO=1`** (default off, solo modo Mock, nunca Chipnet): al arrancar, el server ejecuta automáticamente el flujo completo de la demo (3 wallets, identidad, 2 interacciones, 2 calificaciones, 1 confirmación, 1 confianza = **7 hechos**) y el visitante encuentra el sistema vivo en la primera pantalla. Refactor de `POST /api/demo/run`: el handler ahora delega en la función reutilizable `runDemo()` que también usa el arranque.
+> - **Test E2E nuevo** `auto-demo al arranque (TASK-033)` en `test/e2e_server.test.js`: levanta un server real con `REPID_AUTO_DEMO=1` en puerto efímero y verifica 7 hechos (1 identidad, 2 recibos, 2 ratings, 1 confirmación, 1 trust) + 3 wallets sin intervención.
+>
+> **Verificación**: suite completa **68/68** PASS (antes 67) + smoke local de `REPID_AUTO_DEMO=1` (server arrancó y `/api/facts` devolvió los 7 hechos) + PR pendiente de deploy en Render para la URL pública.

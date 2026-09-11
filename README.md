@@ -34,7 +34,7 @@ También incluye **confirmaciones de plataforma**: una app puede corroborar on-c
 
 [![CI](https://github.com/Mauricio1599/repid/actions/workflows/ci.yml/badge.svg)](https://github.com/Mauricio1599/repid/actions/workflows/ci.yml)
 
-- ✅ **Suite completa**: 67 tests en verde (`npx vitest run`; 48 del protocolo/servidor + 19 end-to-end del servidor).
+- ✅ **Suite completa**: 68 tests en verde (`npx vitest run`; 48 del protocolo/servidor + 20 end-to-end del servidor).
 - ✅ **Modo simulado** (Mock, por defecto) para desarrollar y probar sin red.
 - ✅ **Modo red real** (Chipnet, tBCH) con todas las operaciones de red aisladas en un child process.
 - ✅ **Validación frente a la VM real de Bitcoin**: corrida E2E en Chipnet (2026-09-10, wallet fondeada con 1.015.000 sats de tBCH) — **11/11 PASS**, los 7 hechos del flujo completo broadcast y verificados on-chain. Detalle y txids en `tasks.md` TASK-026. Reproducible por cualquiera desde el workflow manual **`chipnet-e2e`** de GitHub Actions (TASK-032).
@@ -99,10 +99,14 @@ npm start
 
 En Chipnet las wallets nacen vacías: hay que pedir tBCH al faucet (manual) y usar el botón **«Saldo»** de la consola / `scripts/chipnet-e2e.mjs` para validar el flujo completo contra la red real. Guía paso a paso para no-programadores en `GUIA_DE_PRUEBAS.md` §7.
 
-### 3) Tests
+### 3) Demo alojada (sin instalar nada)
+
+Hay un blueprint de despliegue (`render.yaml`) para **Render.com** (plan free): entrá a `https://dashboard.render.com/new` → **Blueprint** → conectá el repo `Mauricio1599/repid` y Render lo levanta solo. Con `REPID_AUTO_DEMO=1` el prototipo arranca **ya poblado** con el flujo completo (7 hechos): el visitante encuentra el sistema vivo en la primera pantalla.
+
+### 4) Tests
 
 ```bash
-npm test             # suite completa del protocolo (67 tests)
+npm test             # suite completa del protocolo (68 tests)
 npm run test:e2e     # solo el flujo end-to-end del servidor
 ```
 
