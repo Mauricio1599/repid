@@ -32,6 +32,8 @@ También incluye **confirmaciones de plataforma**: una app puede corroborar on-c
 
 ## Estado actual
 
+[![CI](https://github.com/Mauricio1599/repid/actions/workflows/ci.yml/badge.svg)](https://github.com/Mauricio1599/repid/actions/workflows/ci.yml)
+
 - ✅ **Suite completa**: 66 tests en verde (`npx vitest run`; 48 del protocolo/servidor + 18 end-to-end del servidor).
 - ✅ **Modo simulado** (Mock, por defecto) para desarrollar y probar sin red.
 - ✅ **Modo red real** (Chipnet, tBCH) con todas las operaciones de red aisladas en un child process.
