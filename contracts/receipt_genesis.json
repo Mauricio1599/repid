@@ -1,0 +1,57 @@
+{
+  "contractName": "ReceiptGenesisValidator",
+  "constructorInputs": [
+    { "name": "partyAPkh", "type": "bytes20" },
+    { "name": "partyBPkh", "type": "bytes20" }
+  ],
+  "abi": [
+    {
+      "name": "mint",
+      "inputs": [
+        { "name": "pkA", "type": "pubkey" },
+        { "name": "sA", "type": "sig" },
+        { "name": "pkB", "type": "pubkey" },
+        { "name": "sB", "type": "sig" }
+      ]
+    }
+  ],
+  "bytecode": "OP_2 OP_PICK OP_HASH160 OP_OVER OP_EQUALVERIFY OP_2SWAP OP_CHECKSIGVERIFY OP_2 OP_PICK OP_HASH160 OP_2 OP_PICK OP_EQUALVERIFY OP_2SWAP OP_CHECKSIGVERIFY OP_INPUTINDEX OP_OUTPOINTINDEX OP_0 OP_NUMEQUALVERIFY OP_INPUTINDEX OP_OUTPOINTTXHASH OP_TXOUTPUTCOUNT OP_4 OP_NUMEQUALVERIFY OP_0 OP_OUTPUTTOKENCATEGORY OP_OVER OP_EQUALVERIFY OP_0 OP_OUTPUTTOKENAMOUNT OP_0 OP_NUMEQUALVERIFY OP_0 OP_OUTPUTBYTECODE 76a914 OP_3 OP_PICK OP_CAT 88ac OP_CAT OP_EQUALVERIFY OP_1 OP_OUTPUTTOKENCATEGORY OP_OVER OP_EQUALVERIFY OP_1 OP_OUTPUTTOKENAMOUNT OP_0 OP_NUMEQUALVERIFY OP_1 OP_OUTPUTTOKENCOMMITMENT OP_3 OP_PICK OP_EQUALVERIFY OP_1 OP_OUTPUTBYTECODE 76a914 OP_3 OP_PICK OP_CAT 88ac OP_CAT OP_EQUALVERIFY OP_2 OP_OUTPUTTOKENCATEGORY OP_OVER OP_EQUALVERIFY OP_2 OP_OUTPUTTOKENAMOUNT OP_0 OP_NUMEQUALVERIFY OP_2 OP_OUTPUTTOKENCOMMITMENT OP_2 OP_PICK OP_EQUALVERIFY OP_2 OP_OUTPUTBYTECODE 76a914 OP_4 OP_ROLL OP_CAT 88ac OP_CAT OP_EQUALVERIFY OP_3 OP_OUTPUTTOKENAMOUNT OP_0 OP_NUMEQUALVERIFY OP_3 OP_OUTPUTTOKENCATEGORY OP_EQUAL OP_NOT OP_VERIFY OP_3 OP_OUTPUTBYTECODE 76a914 OP_ROT OP_CAT 88ac OP_CAT OP_EQUAL",
+  "source": "pragma cashscript ^0.13.0;\n\n// RFC-003 — Interaction Receipt Protocol\n// RFC-004 — RepID Rating Protocol (Rating Rights)\n//\n// ReceiptGenesisValidator es la capa anti-corrupción entre una interacción\n// específica de aplicación y RepID: exige la firma de AMBOS participantes\n// (jointly-signed) y, en una sola transacción de genesis, mintea:\n//\n//   output 0 — Interaction Receipt: NFT inmutable, hecho on-chain de que\n//              la interacción ocurrió. Se bloquea a P2PKH de partyA por\n//              convención (su ubicación no importa: nunca se vuelve a\n//              gastar con lógica de covenant; es solo un ancla indexable).\n//   output 1 — Rating Right de partyA: NFT inmutable bloqueado a P2PKH de\n//              partyA. Su commitment guarda el pkh de partyB: es \"el\n//              derecho de A a calificar a B\".\n//   output 2 — Rating Right de partyB: simétrico, bloqueado a partyB con\n//              commitment = pkh de partyA.\n//   output 3 — Cambio P2PKH a partyA (la parte que financia la transacción\n//              de genesis). En red real (Chipnet) el UTXO de funding tiene\n//              valor real; sin el cambio, casi todo se perdería en fees.\n//              Debe ser plata pura (sin tokens) y volver a partyA.\n//\n// Las Rating Rights no necesitan capability \"mutable\"/\"minting\" ni lógica\n// de covenant adicional: al ser NFTs de un solo output, el propio\n// consumo del UTXO (ISSUED_RATING, un simple gasto P2PKH) impone\n// \"una calificación por participante\" vía las reglas nativas de UTXO\n// single-spend — sin necesidad de estado en el contrato.\n//\n// NOTA DE DISEÑO (asumida, a confirmar): esta versión fija el número de\n// participantes en 2 y por lo tanto el número de outputs en 4, en lugar\n// de generalizar con un loop sobre N participantes. Si el \"loop\" de\n// versiones previas apuntaba a soportar interacciones N-arias, se puede\n// generalizar después con un `do...while` sobre tx.outputs sin cambiar\n// la interfaz pública de mint().\ncontract ReceiptGenesisValidator(bytes20 partyAPkh, bytes20 partyBPkh) {\n    function mint(pubkey pkA, sig sA, pubkey pkB, sig sB) {\n        // 1) Firma conjunta: ambos participantes deben autorizar el\n        //    genesis del recibo de interacción.\n        require(hash160(pkA) == partyAPkh);\n        require(checkSig(sA, pkA));\n        require(hash160(pkB) == partyBPkh);\n        require(checkSig(sB, pkB));\n\n        // 2) Regla de genesis de CashTokens: el UTXO gastado debe venir\n        //    de vout 0 de su transacción de origen.\n        require(tx.inputs[this.activeInputIndex].outpointIndex == 0);\n        bytes32 category = tx.inputs[this.activeInputIndex].outpointTransactionHash;\n\n        // 3) Exactamente 4 outputs: Receipt + 2 Rating Rights + cambio a\n        //    partyA. Ningún minteo oculto adicional.\n        require(tx.outputs.length == 4);\n\n        // Output 0 — Interaction Receipt (inmutable, ancla indexable)\n        require(tx.outputs[0].tokenCategory == category);\n        require(tx.outputs[0].tokenAmount == 0);\n        require(tx.outputs[0].lockingBytecode == new LockingBytecodeP2PKH(partyAPkh));\n\n        // Output 1 — Rating Right de partyA (derecho a calificar a partyB)\n        require(tx.outputs[1].tokenCategory == category);\n        require(tx.outputs[1].tokenAmount == 0);\n        require(tx.outputs[1].nftCommitment == partyBPkh);\n        require(tx.outputs[1].lockingBytecode == new LockingBytecodeP2PKH(partyAPkh));\n\n        // Output 2 — Rating Right de partyB (derecho a calificar a partyA)\n        require(tx.outputs[2].tokenCategory == category);\n        require(tx.outputs[2].tokenAmount == 0);\n        require(tx.outputs[2].nftCommitment == partyAPkh);\n        require(tx.outputs[2].lockingBytecode == new LockingBytecodeP2PKH(partyBPkh));\n\n// Output 3 — Cambio P2PKH a partyA. No puede portar tokens\n        // minteados en esta transacción (los únicos posibles son de la\n        // categoría recién creada por el genesis).\n        require(tx.outputs[3].tokenAmount == 0);\n        require(tx.outputs[3].tokenCategory != category);\n        require(tx.outputs[3].lockingBytecode == new LockingBytecodeP2PKH(partyAPkh));\n    }\n}\n",
+  "fingerprint": "a6ac8698ce1b79df7fa5d63fb2f8755504017eb81de0f73dc7e5454d5285c063",
+  "debug": {
+    "bytecode": "5279a9788872ad5279a952798872adc0c9009dc0c8c4549d00d1788800d3009d00cd0376a91453797e0288ac7e8851d1788851d3009d51d253798851cd0376a91453797e0288ac7e8852d1788852d3009d52d252798852cd0376a914547a7e0288ac7e8853d3009d53d187916953cd0376a9147b7e0288ac7e87",
+    "sourceMap": "40:24:40:27;;:16::28:1;:32::41:0;:8::43:1;41:25:41:32:0;:8::35:1;42:24:42:27:0;;:16::28:1;:32::41:0;;:8::43:1;43:25:43:32:0;:8::35:1;47:26:47:47:0;:16::62:1;:66::67:0;:8::69:1;48:37:48:58:0;:27::83:1;52:16:52:33:0;:37::38;:8::40:1;55:27:55:28:0;:16::43:1;:47::55:0;:8::57:1;56:27:56:28:0;:16::41:1;:45::46:0;:8::48:1;57:27:57:28:0;:16::45:1;:49::84:0;:74::83;;:49::84:1;;;:8::86;60:27:60:28:0;:16::43:1;:47::55:0;:8::57:1;61:27:61:28:0;:16::41:1;:45::46:0;:8::48:1;62:27:62:28:0;:16::43:1;:47::56:0;;:8::58:1;63:27:63:28:0;:16::45:1;:49::84:0;:74::83;;:49::84:1;;;:8::86;66:27:66:28:0;:16::43:1;:47::55:0;:8::57:1;67:27:67:28:0;:16::41:1;:45::46:0;:8::48:1;68:27:68:28:0;:16::43:1;:47::56:0;;:8::58:1;69:27:69:28:0;:16::45:1;:49::84:0;:74::83;;:49::84:1;;;:8::86;74:27:74:28:0;:16::41:1;:45::46:0;:8::48:1;75:27:75:28:0;:16::43:1;:::55;;:8::57;76:27:76:28:0;:16::45:1;:49::84:0;:74::83;:49::84:1;;;:8::86",
+    "logs": [],
+    "requires": [
+      { "ip": 6, "line": 40 },
+      { "ip": 8, "line": 41 },
+      { "ip": 14, "line": 42 },
+      { "ip": 16, "line": 43 },
+      { "ip": 20, "line": 47 },
+      { "ip": 25, "line": 52 },
+      { "ip": 29, "line": 55 },
+      { "ip": 33, "line": 56 },
+      { "ip": 42, "line": 57 },
+      { "ip": 46, "line": 60 },
+      { "ip": 50, "line": 61 },
+      { "ip": 55, "line": 62 },
+      { "ip": 64, "line": 63 },
+      { "ip": 68, "line": 66 },
+      { "ip": 72, "line": 67 },
+      { "ip": 77, "line": 68 },
+      { "ip": 86, "line": 69 },
+      { "ip": 90, "line": 74 },
+      { "ip": 95, "line": 75 },
+      { "ip": 104, "line": 76 }
+    ]
+  },
+  "compiler": {
+    "name": "cashc",
+    "version": "0.13.2",
+    "options": {
+      "enforceFunctionParameterTypes": true,
+      "enforceLocktimeGuard": true
+    }
+  },
+  "updatedAt": "2026-09-10T01:48:50.291Z"
+}

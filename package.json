@@ -1,0 +1,26 @@
+{
+  "name": "repid",
+  "version": "1.0.0",
+  "description": "RepID — prototipo de protocolo de reputación descentralizada sobre Bitcoin Cash (CashTokens + CashScript).",
+  "main": "server/index.js",
+  "type": "module",
+  "directories": {
+    "test": "test"
+  },
+  "scripts": {
+    "start": "node server/index.js",
+    "test": "vitest run",
+    "test:e2e": "vitest run test/e2e_server.test.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "cashc": "^0.13.2",
+    "vitest": "^4.1.11"
+  },
+  "dependencies": {
+    "cashscript": "^0.13.2",
+    "express": "^5.2.1"
+  }
+}

@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>RepID — ledger en vivo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;1,9..144,500&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<header class="masthead">
+  <div class="masthead-inner">
+    <h1>RepID</h1>
+    <p>Una cadena de identidades, interacciones y calificaciones — minteada en vivo en esta sesión, sobre una BCH simulada.</p>
+    <p class="network-tag" id="network-tag"></p>
+  </div>
+</header>
+
+<main class="console">
+
+  <section class="actions" aria-label="Acciones">
+
+    <div class="panel">
+      <h2>Wallets</h2>
+      <p class="hint">Cada wallet es un par de claves sintético para este demo. En la red simulada nacen con fondos de juguete; en Chipnet nacen vacías y hay que pedir tBCH al faucet.</p>
+      <button data-action="create-wallet">Crear wallet</button>
+      <ul class="wallet-list" id="wallet-list"></ul>
+    </div>
+
+    <div class="panel">
+      <h2>Mintear identidad</h2>
+      <p class="hint">RFC-001 — ancla un NFT inmutable a la wallet elegida.</p>
+      <label>Wallet
+        <select id="identity-owner"></select>
+      </label>
+      <button data-action="mint-identity">Mintear identidad</button>
+    </div>
+
+    <div class="panel">
+      <h2>Registrar interacción</h2>
+      <p class="hint">RFC-002/003/004 — define roles explícitos, requiere la firma de ambas partes; emite un Interaction Receipt y dos Rating Rights.</p>
+      <label>Parte A
+        <select id="interaction-party-a"></select>
+      </label>
+      <label>Rol de A
+        <input type="text" id="interaction-role-a" placeholder="ej: pasajero" />
+      </label>
+      <label>Parte B
+        <select id="interaction-party-b"></select>
+      </label>
+      <label>Rol de B
+        <input type="text" id="interaction-role-b" placeholder="ej: conductor" />
+      </label>
+      <button data-action="create-interaction">Registrar interacción</button>
+    </div>
+
+    <div class="panel">
+      <h2>Emitir calificación</h2>
+      <p class="hint">RFC-004 — gasta una Rating Right sin covenant; el NFT se quema al no reaparecer en ningún output.</p>
+      <label>Rating Right
+        <select id="rating-right"></select>
+      </label>
+      <label>Puntaje
+        <input type="range" id="rating-score" min="1" max="5" step="1" value="3" />
+        <output id="rating-score-output">3</output>
+      </label>
+      <button data-action="issue-rating">Emitir calificación</button>
+    </div>
+
+    <div class="panel">
+      <h2>Confirmar interacción</h2>
+      <p class="hint">SPEC-003 / RF-06 — la plataforma corrobora que una interacción ocurrió: gasta su propio UTXO con un OP_RETURN que referencia el Recibo. Hecho independiente, sin mintear Identidad.</p>
+      <label>Plataforma (wallet)
+        <select id="platform-pkh"></select>
+      </label>
+      <label>Interacción a confirmar
+        <select id="platform-receipt"></select>
+      </label>
+      <button data-action="create-platform-confirmation">Confirmar interacción</button>
+    </div>
+
+    <div class="panel">
+      <h2>Declarar confianza</h2>
+      <p class="hint">SPEC-006 — declaración unilateral: la wallet de la izquierda declara on-chain que confía en la de la derecha (sin su consentimiento, sin Rating Rights).</p>
+      <label>Quién confía (truster)
+        <select id="trust-trust"></select>
+      </label>
+      <label>En quién (trusted)
+        <select id="trust-trusted"></select>
+      </label>
+      <button data-action="create-trust-link">Declarar confianza</button>
+    </div>
+
+    <div class="panel">
+      <h2>Demo automática</h2>
+      <p class="hint">Genera sola el flujo completo: 3 wallets, 1 identidad, 2 interacciones, 2 calificaciones, 1 confirmación y 1 confianza. Para ver el sistema vivo de un vistazo.</p>
+      <button data-action="run-demo">Reproducir demo</button>
+    </div>
+
+    <div class="panel">
+      <h2>Reiniciar demo</h2>
+      <p class="hint">Borra wallets, hechos y persistencia para repetir las pruebas desde cero. Todo lo anterior queda descartado.</p>
+      <button data-action="reset-demo">Reiniciar demo</button>
+    </div>
+
+  </section>
+
+  <section class="ledger" aria-label="Ledger del protocolo">
+    <div class="tabs" role="tablist">
+      <button class="tab active" data-tab="ledger" role="tab" aria-selected="true">Ledger</button>
+      <button class="tab" data-tab="indexer" role="tab" aria-selected="false">Vista indexer</button>
+      <button class="tab" data-tab="reputation" role="tab" aria-selected="false">Reputación</button>
+    </div>
+
+    <div class="tab-panel active" id="tab-ledger">
+      <p class="hint">Cada hecho reconstruido por el indexer (RFC-006), en orden de aparición.</p>
+      <ol class="fact-log" id="fact-log">
+        <li class="fact-empty">Todavía no hay hechos. Crea una wallet para empezar.</li>
+      </ol>
+    </div>
+
+    <div class="tab-panel" id="tab-indexer">
+      <p class="hint">Así "oye" la red y procesa cada transacción el indexer: llega el hex crudo, decodifica y decide si calza con una forma RepID. Lo que no calza se descarta sin tocar el Ledger.</p>
+      <button data-action="send-foreign">Enviar transacción desconocida</button>
+
+      <h3>Feed del nodo (transacciones crudas)</h3>
+      <ol class="raw-feed" id="raw-feed">
+        <li class="fact-empty">Todavía no llegó ninguna transacción.</li>
+      </ol>
+
+      <h3>Estado interno del indexer</h3>
+      <h4>Rating Rights bajo seguimiento</h4>
+      <ul class="store-list" id="indexer-rating-rights">
+        <li>Ninguna.</li>
+      </ul>
+      <h4>Receipts en el índice</h4>
+      <ul class="store-list" id="indexer-receipts">
+        <li>Ninguno.</li>
+      </ul>
+      <p class="hint" id="indexer-store-file"></p>
+    </div>
+
+    <div class="tab-panel" id="tab-reputation">
+      <p class="hint">La reputación es interpretación fuera de la cadena (construida a partir de los hechos indexados, sin ponderar). Cada número se puede auditar hasta la transacción que lo produjo.</p>
+      <label>Elegí una wallet
+        <select id="reputation-pkh"></select>
+      </label>
+      <button data-action="show-reputation">Ver perfil</button>
+      <div id="reputation-card" class="reputation-empty">Elegí una wallet y hacé clic en «Ver perfil».</div>
+      <p class="hint">Promedio sin ponderar — la ponderación y las políticas anti-sybil quedan en la capa de reputación (fuera de alcance, ver SPEC-006).</p>
+    </div>
+  </section>
+
+</main>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script src="app.js"></script>
+</body>
+</html>

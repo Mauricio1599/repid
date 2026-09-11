@@ -1,0 +1,47 @@
+pragma cashscript ^0.13.0;
+
+// RFC-001 — Identity Protocol
+//
+// IdentityGenesisValidator es un covenant de un solo uso: autoriza el
+// minteo (genesis) de exactamente un NFT de Identidad RepID y, en el mismo
+// gasto, lo deja bloqueado bajo un P2PKH controlado por el propietario.
+// A partir de ahí la identidad vive como NFT inmutable (capability "none")
+// sobre un UTXO P2PKH común — RepID no vuelve a ejecutar lógica de
+// covenant sobre ella. El hecho on-chain (que existe, quién la controla)
+// es inmutable; la interpretación (reputación) queda fuera de la cadena.
+contract IdentityGenesisValidator(bytes20 ownerPkh) {
+    function mint() {
+        // 1) Regla de genesis de CashTokens: el UTXO que se gasta debe
+        //    provenir de vout 0 de su transacción de origen. Sin esto, el
+        //    genesis de una nueva categoría de token es inválido a nivel
+        //    de consenso.
+        require(tx.inputs[this.activeInputIndex].outpointIndex == 0);
+
+        // 2) La nueva categoría de token es el txid del propio UTXO
+        //    gastado (regla estándar de CashTokens). outpointTransactionHash
+        //    ya se entrega en el mismo orden de bytes que tokenCategory
+        //    (orden "interno", no el orden invertido que muestran los
+        //    exploradores) — no requiere ningún reordenamiento aquí.
+        bytes32 newCategory = tx.inputs[this.activeInputIndex].outpointTransactionHash;
+
+        // 3) Output 0: el NFT recién minteado — misma categoría de genesis,
+        //    capability "none" (inmutable, por eso sin sufijo 0x01/0x02 en
+        //    tokenCategory), sin fungibles asociados, bloqueado a P2PKH del
+        //    propietario.
+        require(tx.outputs[0].tokenCategory == newCategory);
+        require(tx.outputs[0].tokenAmount == 0);
+        require(tx.outputs[0].lockingBytecode == new LockingBytecodeP2PKH(ownerPkh));
+
+// 4) Output 1: cambio P2PKH al propietario. En red real (Chipnet)
+        //    el UTXO de funding tiene valor; sin output de cambio, casi
+        //    todo ese valor se perdería en fees. El cambio no puede portar
+        //    tokens minteados en esta transacción (los únicos tokens que
+        //    pueden existir acá son de la categoría recién creada): cierra
+        //    la puerta a minteos ocultos adicionales o a fugas de valor en
+        //    la misma transacción.
+        require(tx.outputs.length == 2);
+        require(tx.outputs[1].tokenAmount == 0);
+        require(tx.outputs[1].tokenCategory != newCategory);
+        require(tx.outputs[1].lockingBytecode == new LockingBytecodeP2PKH(ownerPkh));
+    }
+}

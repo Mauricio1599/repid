@@ -1,0 +1,36 @@
+{
+  "contractName": "IdentityGenesisValidator",
+  "constructorInputs": [
+    { "name": "ownerPkh", "type": "bytes20" }
+  ],
+  "abi": [
+    { "name": "mint", "inputs": [] }
+  ],
+  "bytecode": "OP_INPUTINDEX OP_OUTPOINTINDEX OP_0 OP_NUMEQUALVERIFY OP_INPUTINDEX OP_OUTPOINTTXHASH OP_0 OP_OUTPUTTOKENCATEGORY OP_OVER OP_EQUALVERIFY OP_0 OP_OUTPUTTOKENAMOUNT OP_0 OP_NUMEQUALVERIFY OP_0 OP_OUTPUTBYTECODE 76a914 OP_3 OP_PICK OP_CAT 88ac OP_CAT OP_EQUALVERIFY OP_TXOUTPUTCOUNT OP_2 OP_NUMEQUALVERIFY OP_1 OP_OUTPUTTOKENAMOUNT OP_0 OP_NUMEQUALVERIFY OP_1 OP_OUTPUTTOKENCATEGORY OP_EQUAL OP_NOT OP_VERIFY OP_1 OP_OUTPUTBYTECODE 76a914 OP_ROT OP_CAT 88ac OP_CAT OP_EQUAL",
+  "source": "pragma cashscript ^0.13.0;\n\n// RFC-001 — Identity Protocol\n//\n// IdentityGenesisValidator es un covenant de un solo uso: autoriza el\n// minteo (genesis) de exactamente un NFT de Identidad RepID y, en el mismo\n// gasto, lo deja bloqueado bajo un P2PKH controlado por el propietario.\n// A partir de ahí la identidad vive como NFT inmutable (capability \"none\")\n// sobre un UTXO P2PKH común — RepID no vuelve a ejecutar lógica de\n// covenant sobre ella. El hecho on-chain (que existe, quién la controla)\n// es inmutable; la interpretación (reputación) queda fuera de la cadena.\ncontract IdentityGenesisValidator(bytes20 ownerPkh) {\n    function mint() {\n        // 1) Regla de genesis de CashTokens: el UTXO que se gasta debe\n        //    provenir de vout 0 de su transacción de origen. Sin esto, el\n        //    genesis de una nueva categoría de token es inválido a nivel\n        //    de consenso.\n        require(tx.inputs[this.activeInputIndex].outpointIndex == 0);\n\n        // 2) La nueva categoría de token es el txid del propio UTXO\n        //    gastado (regla estándar de CashTokens). outpointTransactionHash\n        //    ya se entrega en el mismo orden de bytes que tokenCategory\n        //    (orden \"interno\", no el orden invertido que muestran los\n        //    exploradores) — no requiere ningún reordenamiento aquí.\n        bytes32 newCategory = tx.inputs[this.activeInputIndex].outpointTransactionHash;\n\n        // 3) Output 0: el NFT recién minteado — misma categoría de genesis,\n        //    capability \"none\" (inmutable, por eso sin sufijo 0x01/0x02 en\n        //    tokenCategory), sin fungibles asociados, bloqueado a P2PKH del\n        //    propietario.\n        require(tx.outputs[0].tokenCategory == newCategory);\n        require(tx.outputs[0].tokenAmount == 0);\n        require(tx.outputs[0].lockingBytecode == new LockingBytecodeP2PKH(ownerPkh));\n\n// 4) Output 1: cambio P2PKH al propietario. En red real (Chipnet)\n        //    el UTXO de funding tiene valor; sin output de cambio, casi\n        //    todo ese valor se perdería en fees. El cambio no puede portar\n        //    tokens minteados en esta transacción (los únicos tokens que\n        //    pueden existir acá son de la categoría recién creada): cierra\n        //    la puerta a minteos ocultos adicionales o a fugas de valor en\n        //    la misma transacción.\n        require(tx.outputs.length == 2);\n        require(tx.outputs[1].tokenAmount == 0);\n        require(tx.outputs[1].tokenCategory != newCategory);\n        require(tx.outputs[1].lockingBytecode == new LockingBytecodeP2PKH(ownerPkh));\n    }\n}\n",
+  "fingerprint": "523dc5a28a46ebc07751512d900460de973474f3c1783ee9795d879e96d20cc6",
+  "debug": {
+    "bytecode": "c0c9009dc0c800d1788800d3009d00cd0376a91453797e0288ac7e88c4529d51d3009d51d187916951cd0376a9147b7e0288ac7e87",
+    "sourceMap": "18:26:18:47;:16::62:1;:66::67:0;:8::69:1;25:40:25:61:0;:30::86:1;31:27:31:28:0;:16::43:1;:47::58:0;:8::60:1;32:27:32:28:0;:16::41:1;:45::46:0;:8::48:1;33:27:33:28:0;:16::45:1;:49::83:0;:74::82;;:49::83:1;;;:8::85;42:16:42:33:0;:37::38;:8::40:1;43:27:43:28:0;:16::41:1;:45::46:0;:8::48:1;44:27:44:28:0;:16::43:1;:::58;;:8::60;45:27:45:28:0;:16::45:1;:49::83:0;:74::82;:49::83:1;;;:8::85",
+    "logs": [],
+    "requires": [
+      { "ip": 4, "line": 18 },
+      { "ip": 10, "line": 31 },
+      { "ip": 14, "line": 32 },
+      { "ip": 23, "line": 33 },
+      { "ip": 26, "line": 42 },
+      { "ip": 30, "line": 43 },
+      { "ip": 35, "line": 44 },
+      { "ip": 44, "line": 45 }
+    ]
+  },
+  "compiler": {
+    "name": "cashc",
+    "version": "0.13.2",
+    "options": {
+      "enforceFunctionParameterTypes": true,
+      "enforceLocktimeGuard": true
+    }
+  },
+  "updatedAt": "2026-09-10T01:48:47.927Z"
+}

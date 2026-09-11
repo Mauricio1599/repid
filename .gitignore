@@ -1,0 +1,16 @@
+# Dependencias
+node_modules/
+
+# Persistencia del prototipo (claves de prueba tBCH y estado local)
+data/
+data_chipnet_e2e/
+data_diag/
+
+# Diagnósticos y logs
+*.log
+diag_out.txt
+diag_err.txt
+
+# Sistema
+.DS_Store
+Thumbs.db
