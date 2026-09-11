@@ -1,0 +1,47 @@
+name: chipnet-e2e
+
+# Reproduce la corrida real de TASK-026 (validate frente a la VM de Bitcoin)
+# contra la red de pruebas Chipnet. Es manual a propósito: requiere fondear
+# la wallet de prueba con tBCH del faucet (tbch.googol.cash, captcha), que
+# no se puede automatizar. Si no hay fondos, el script termina con código 2
+# mostrando la dirección a fondear. Las claves de las wallets de prueba se
+# suben como artifact para poder reintentar sin perder tBCH.
+
+on:
+  workflow_dispatch:
+
+jobs:
+  chipnet:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Recuperar wallets de una corrida anterior (si existe artifact)
+        uses: dawidd6/action-download-artifact@v8
+        with:
+          name: data_chipnet_e2e
+          path: data_chipnet_e2e
+          if_no_artifact_found: warn
+          workflow_conclusion: completed
+
+      - name: Correr E2E Chipnet (requiere tBCH en el data dir o faucet)
+        env:
+          REPID_NETWORK: chipnet
+          REPID_DATA_DIR: ${{ github.workspace }}/data_chipnet_e2e
+        run: node scripts/chipnet-e2e.mjs
+
+      - name: Preservar wallets de prueba (tBCH) como artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: data_chipnet_e2e
+          path: data_chipnet_e2e
+          if-no-files-found: ignore
