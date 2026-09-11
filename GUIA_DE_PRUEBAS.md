@@ -36,7 +36,7 @@ Para **cerrar** el prototipo: volvé a la terminal y presioná `Ctrl + C`.
 ## 3) La pantalla, de un vistazo
 
 - **Columna izquierda**: los botones y formularios para hacer cada cosa ("paneles").
-- **Columna derecha**: tiene tres pestañas. **«Ledger»** muestra la lista de *hechos* que quedaron registrados (del más nuevo al más antiguo — cada acción exitosa agrega una línea acá). **«Vista indexer»** muestra el lado técnico (transacciones crudas con hex y estado interno, Pruebas 12 a 14). **«Reputación»** muestra la historia agregada de una persona (Promedios y auditorías, Prueba 16).
+- **Columna derecha**: tiene cuatro pestañas. **«Ledger»** muestra la lista de *hechos* que quedaron registrados (del más nuevo al más antiguo — cada acción exitosa agrega una línea acá). **«Vista indexer»** muestra el lado técnico (transacciones crudas con hex y estado interno, Pruebas 12 a 14). **«Reputación»** muestra la historia agregada de una persona (Promedios y auditorías, Prueba 16). **«App ejemplo»** es una mini-plataforma de freelance montada sobre la API cruda (Prueba 17).
 - **Aviso verde/rojo** (abajo al centro): te confirma si la acción funcionó (verde) o qué salió mal (rojo).
 
 Dato útil: cada vez que hagas una acción, revisá que aparezca la línea correspondiente en el Ledger **y** un aviso verde.
@@ -175,6 +175,21 @@ Orden recomendado: hacelas en secuencia. Elegís las wallets con los menúes des
 | 4 | Anotá un txid y buscálo en la pestaña «Ledger» o «Vista indexer» | Encontrás exactamente la transacción que respalda ese número |
 
 > Este es el corazón de RepID: la reputación es **interpretación sobre la cadena, nunca dentro de la cadena**. Cada promedio se puede desarmar hasta la transacción que lo generó. El sistema no pondera ni juzga: solo suma hechos verificables.
+
+### Prueba 17 — La App de ejemplo (freelance) = RepID como capa para una app real
+
+Esta pestaña muestra un app imaginaria de freelance (cliente ⇄ profesional) **usando la API cruda de RepID**: cada botón dispara el mismo flujo del protocolo, pero presentado como lo viviría una app.
+
+| # | Qué hacés | Resultado esperado |
+|---|---|---|
+| 1 | Pestaña **«App ejemplo»** → elegí **cliente**, **profesional** y una **tarea** → **«Registrar interacción»** | Aviso verde *«Tarea “…” registrada on-chain»*, la tarea aparece en el **Historial** como `sin confirmar` y en el **Ledger** hay una línea `Interacción registrada` |
+| 2 | Elegí una wallet **plataforma** (puede ser la misma del cliente) → **«Confirmar la última tarea»** | Tarea pasa a `confirmada ✓`, Ledger suma `Interacción confirmada` y el panel **Crudo** mostró el `POST /api/platform-confirmations` con el txid del recibo |
+| 3 | Mové el deslizador de **puntaje** y clic en **«Calificar al profesional»** | Tarea pasa a `calificada (5) ✓`, Ledger suma `Calificación emitida` y en «Vista indexer» la Rating Right del cliente desapareció del seguimiento (se gastó) |
+| 4 | **«Ver perfil del profesional»** | En su card de reputación: promedio 5.0 y la calificación auditada (txid del cliente) |
+| 5 | **«Cliente → declarar confianza en el profesional»** | Ledger suma `Confianza declarada` (unilateral, no hace falta que el profesional lo acepte) |
+| 6 | Repetí el paso 1 con otra tarea y el mismo profesional, calificá con 2 | El promedio del profesional baja a **3.5** (5+2 / 2) — la reputación vive y cambia con cada hecho real |
+
+> Cada clic es un hecho on-chain distinto, auditables uno por uno en el Ledger y en el «Crudo». Hoy estos hechos viven en la cadena simulada; en modo Chipnet (sección 7) se broadcasten de verdad.
 
 ---
 

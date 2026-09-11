@@ -24,7 +24,7 @@ El resultado: una **reputación portable, auditable hasta la transacción que la
 
 ## Estado actual
 
-- Protocolo formalizado en **6 specs** (RFC-001 a RFC-006) y **66 tests en verde, incluye 18 E2E**.
+- Protocolo formalizado en **6 specs** (RFC-001 a RFC-006) y **67 tests en verde, incluye 19 E2E**.
 - **Prototipo funcional completo**: covenants CashScript + indexer + consola web en vivo (demo de un clic).
 - **Doble modo**: red simulada (para que cualquiera lo pruebe al instante) y **red real de pruebas Chipnet** (tBCH) con operaciones de red aisladas de forma segura.
 - Validación definitiva ante la **VM real de Bitcoin** en curso (una corrida E2E en cuanto una wallet de prueba reciba tBCH).

@@ -230,6 +230,43 @@ describe('Servidor prototipo — flujo feliz end-to-end', () => {
     expect(r.body.facts).toBeGreaterThan(before);
   });
 
+  it('la App de ejemplo (freelance) mueve el flujo completo sobre la API', async () => {
+    const client = await api('POST', '/api/wallets');
+    const pro = await api('POST', '/api/wallets');
+    const platform = await api('POST', '/api/wallets');
+
+    const hire = await api('POST', '/api/interactions', {
+      partyA: { pkh: client.body.pkh, role: 'cliente' },
+      partyB: { pkh: pro.body.pkh, role: 'profesional' },
+    });
+    expect(hire.status).toBe(201);
+    expect(hire.body.roles).toEqual(['cliente', 'profesional']);
+    const clientRight = hire.body.ratingRights.find((rr) => rr.ownerPkh === client.body.pkh);
+    expect(clientRight).toBeDefined();
+
+    const confirm = await api('POST', '/api/platform-confirmations', {
+      platformPkh: platform.body.pkh, receiptTxid: hire.body.txid,
+    });
+    expect(confirm.status).toBe(201);
+    expect(confirm.body.valid).toBe(true);
+
+    const rating = await api('POST', '/api/ratings', {
+      outpoint: clientRight.outpoint, raterPkh: client.body.pkh, score: 5,
+    });
+    expect(rating.status).toBe(201);
+    expect(rating.body.valid).toBe(true);
+
+    const prof = await api('GET', `/api/reputation/${pro.body.pkh}`);
+    expect(prof.status).toBe(200);
+    expect(prof.body.ratingsReceived).toHaveLength(1);
+    expect(prof.body.ratingsReceived[0].raterPkh).toBe(client.body.pkh);
+    expect(prof.body.avg).toBe('5.0');
+
+    const clientProfile = await api('GET', `/api/reputation/${client.body.pkh}`);
+    expect(clientProfile.body.confirmedReceipts).toHaveLength(1);
+    expect(clientProfile.body.confirmedReceipts[0].receiptTxid).toBe(hire.body.txid);
+  });
+
   it('transfiere sats P2PKH→P2PKH sin generar un hecho RepID (TASK-026)', async () => {
     const before = (await api('GET', '/api/facts')).body.length;
     const r = await api('POST', '/api/transfer', {

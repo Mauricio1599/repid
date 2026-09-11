@@ -46,5 +46,5 @@ Es un hecho de **declaración social unilateral**, distinto del par interacción
 - [x] Autoconfianza marcada `valid: false` (RF-03; TASK-018).
 - [x] `OP_RETURN` con tag ajeno a RepID → no se reconoce (test en TASK-018).
 - [x] El hecho no acuña Rating Rights: la transacción del test no los incluye (RF-04).
-- [x] Suite completa en verde: `npx vitest run` → 66 tests, 0 fallos (7 archivos, incluye los 18 E2E del servidor).
+- [x] Suite completa en verde: `npx vitest run` → 67 tests, 0 fallos (7 archivos, incluye los 19 E2E del servidor).
 - [ ] El código cumple con `constitution.md`.

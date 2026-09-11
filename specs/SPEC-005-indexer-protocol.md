@@ -64,5 +64,5 @@ El protocolo define qué se reconoce como hecho, cómo se valida cada hecho, y c
 - [x] `valid: false` para score fuera de rango 1–5 (RF-05; TASK-008), para confirmaciones de Recibos desconocidos (RF-07; TASK-016) y para autoconfianza (RF-10; TASK-018).
 - [x] `null` para transacciones ajenas a RepID (RF-09, test "devuelve null…").
 - [x] Persistencia JSON de Rating Rights y del índice de Receipts con recarga en instancia nueva (RF-08; TASK-004/TASK-016).
-- [x] Suite completa en verde: `npx vitest run` → 66 tests, 0 fallos (7 archivos: 48 del protocolo/servidor + 18 E2E del servidor).
+- [x] Suite completa en verde: `npx vitest run` → 67 tests, 0 fallos (7 archivos: 48 del protocolo/servidor + 19 E2E del servidor).
 - [ ] El código cumple con `constitution.md`.

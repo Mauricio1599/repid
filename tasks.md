@@ -247,3 +247,30 @@
 > **Verificación**: suite completa **66/66** (antes 63) + smoke chipnet **9/9** PASS intacto.
 
 > **Opcional (no bloquea, depende de la gota)**: extender `scripts/chipnet-mode-smoke.mjs` con una transfer real P2PKH→P2PKH (verificando on-chain que no genera hecho) cuando la wallet de la corrida tenga tBCH.
+
+- [x] **TASK-030** **Repo público + CI (GitHub)**: el prototipo pasa de carpeta local a repositorio versionado y con integración continua. *(Ejecutado 2026-09-11.)*
+
+> **Implementado:**
+> - `.gitignore` en la raíz (excluye `node_modules/`, `data/`, `data_chipnet_e2e/` — protege claves/wallets de prueba tBCH).
+> - `LICENSE` MIT (decisión de Mauricio) + `CONTRIBUTING.md`.
+> - `package-lock.json` versionado (`npm ci` reproducible en CI) + workflow `.github/workflows/ci.yml` (Node 22 → `npm ci` → `npm test`).
+> - `git init -b main` (user `Mauricio1599` / `mauricioramos150699@gmail.com`), commit inicial y `gh repo create repid --public --source . --push`.
+> - **Repo**: https://github.com/Mauricio1599/repid — badge del CI en el README.
+>
+> **Verificación**: primer run de Actions en `main` → **success** (run 34558659475 y el de la badge 34558672872, ambos verdes).
+
+- [x] **TASK-031** [RFC-005] **Pestaña «App de ejemplo» (freelance)** en la consola web: una mini-plataforma de freelance montada sobre la **API existente** (sin cambios de backend) que muestra RepID como capa de reputación usable desde una app. *(Ejecutado 2026-09-11.)*
+
+> **Implementado:**
+> - Nueva pestaña **«App ejemplo»** en `server/public/index.html` + `app.js` + `style.css`:
+>   1. **Contratar al profesional** — `POST /api/interactions` con roles `cliente`/`profesional` (Recibo on-chain); el selector de tarea (diseño de logo / servidor / traducción) es metadato de la interacción.
+>   2. **La plataforma confirma** — `POST /api/platform-confirmations` (hecho `PLATFORM_CONFIRMATION` con una wallet validadora).
+>   3. **El cliente califica** — el cliente gasta su Rating Right con `POST /api/ratings` (score 1–5, slider).
+>   4. **Reputación del profesional** — `GET /api/reputation/:pkh` en vivo + declara confianza opcional (`POST /api/trust-links`).
+> - Historial de la sesión de la app (recibo, confirmada/calificada) y panel **«Crudo»** que muestra la llamada exacta a la API (método, ruta, payload y respuesta) por acción.
+> - `renderReputation` reutilizable con target de card (la pestaña app muestra el perfil del profesional en su propia card).
+> - **Test E2E nuevo** `la App de ejemplo (freelance) mueve el flujo completo sobre la API` en `test/e2e_server.test.js` (cliente/profesional/plataforma frescos → interacción → confirmación → rating → reputaciones cruzadas del profesional y del cliente).
+>
+> **Verificación**: suite completa **67/67** PASS + CI verde.
+>
+> **Nota**: el `confirmedReceipts` de la reputación pertenece al perfil del **cliente** (partyA es el dueño del Recibo), no al del profesional — el test lo verifica con perfiles cruzados.

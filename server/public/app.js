@@ -57,7 +57,7 @@ async function loadWallets() {
   const options = state.wallets
     .map((w) => `<option value="${w.pkh}">${short(w.pkh)}</option>`)
     .join('');
-  for (const id of ['identity-owner', 'interaction-party-a', 'interaction-party-b', 'platform-pkh', 'trust-trust', 'trust-trusted', 'reputation-pkh']) {
+  for (const id of ['identity-owner', 'interaction-party-a', 'interaction-party-b', 'platform-pkh', 'trust-trust', 'trust-trusted', 'reputation-pkh', 'app-client', 'app-pro', 'app-platform']) {
     const select = document.getElementById(id);
     const previous = select.value;
     select.innerHTML = options || '<option value="">— crea una wallet primero —</option>';
@@ -219,8 +219,8 @@ function listItems(items, labelOf) {
   return items.map((it) => `<li>${labelOf(it)} · tx=${short(it.txid)}</li>`).join('');
 }
 
-function renderReputation(profile) {
-  const card = document.getElementById('reputation-card');
+function renderReputation(profile, cardId = 'reputation-card') {
+  const card = document.getElementById(cardId);
   const n = profile.ratingsReceived.length;
   const identity = profile.hasIdentity
     ? `<li>Identidad <strong>sí</strong> (tx=${short(profile.identityTxid)})</li>`
@@ -261,6 +261,53 @@ async function withDisabled(button, fn) {
   } finally {
     button.disabled = false;
   }
+}
+
+// --- App de ejemplo (freelance) -------------------------------------------
+
+const appState = { tasks: [] };
+
+function appAppendRaw(text) {
+  const el = document.getElementById('app-raw');
+  el.appendChild(document.createElement('div'));
+  el.lastChild.textContent = text.trimEnd();
+  while (el.childElementCount >= 40) el.removeChild(el.firstChild);
+  el.scrollTop = el.scrollHeight;
+}
+
+async function appCall(method, path, body) {
+  appAppendRaw(`▶ ${method} ${path}\n${body ? JSON.stringify(body, null, 1) : ''}`);
+  const res = await fetch(path, {
+    method,
+    headers: { 'Content-Type': 'application/json' },
+    body: body === undefined ? undefined : JSON.stringify(body),
+  });
+  const json = await res.json().catch(() => ({}));
+  appAppendRaw(`→ ${res.status} ${JSON.stringify(json)}`);
+  if (!res.ok) throw new Error(json.error || `Error ${res.status}`);
+  return json;
+}
+
+function appPicked() {
+  const clientPkh = document.getElementById('app-client').value;
+  const proPkh = document.getElementById('app-pro').value;
+  const platformPkh = document.getElementById('app-platform').value;
+  if (!clientPkh || !proPkh) throw new Error('Elegí cliente y profesional.');
+  if (clientPkh === proPkh) throw new Error('El cliente y el profesional deben ser wallets distintas.');
+  if (!platformPkh) throw new Error('Elegí una wallet para la plataforma.');
+  return { clientPkh, proPkh, platformPkh };
+}
+
+function renderAppHistory() {
+  const el = document.getElementById('app-history');
+  el.innerHTML = appState.tasks.length
+    ? appState.tasks.map((t, i) => `<li>
+        <strong>#${i + 1}</strong> · ${t.taskType} ·
+        recibo <code>${short(t.txid)}</code> ·
+        ${t.confirmed ? 'confirmada ✓' : 'sin confirmar'} ·
+        ${t.rated ? `calificada (${t.score}) ✓` : 'sin calificar'}
+      </li>`).join('')
+    : '<li>Sin tareas todavía.</li>';
 }
 
 document.addEventListener('click', (event) => {
@@ -415,10 +462,93 @@ document.addEventListener('click', (event) => {
       showSuccess('Calificación emitida.');
     });
   }
+
+  if (action === 'app-hire') {
+    withDisabled(button, async () => {
+      const { clientPkh, proPkh } = appPicked();
+      const taskType = document.getElementById('app-task').value;
+      const fact = await appCall('POST', '/api/interactions', {
+        partyA: { pkh: clientPkh, role: 'cliente' },
+        partyB: { pkh: proPkh, role: 'profesional' },
+      });
+      const clientRight = (fact.ratingRights ?? []).find((rr) => rr.ownerPkh === clientPkh);
+      appState.tasks.push({
+        txid: fact.txid,
+        taskType,
+        clientPkh,
+        proPkh,
+        clientRight: clientRight?.outpoint,
+        confirmed: false,
+        rated: false,
+        score: null,
+      });
+      renderAppHistory();
+      await loadRatingRights();
+      await loadInteractions();
+      await loadFacts();
+      showSuccess(`Tarea «${taskType}» registrada on-chain (Recibo).`);
+    });
+  }
+
+  if (action === 'app-confirm') {
+    withDisabled(button, async () => {
+      const { platformPkh } = appPicked();
+      const pending = [...appState.tasks].reverse().find((t) => !t.confirmed);
+      if (!pending) throw new Error('No hay ninguna tarea sin confirmar.');
+      const conf = await appCall('POST', '/api/platform-confirmations', {
+        platformPkh, receiptTxid: pending.txid,
+      });
+      pending.confirmed = true;
+      renderAppHistory();
+      await loadFacts();
+      showSuccess(conf.valid ? 'Plataforma confirmó la tarea on-chain.' : 'Confirmación inválida en el índice.');
+    });
+  }
+
+  if (action === 'app-rate') {
+    withDisabled(button, async () => {
+      const score = Number(document.getElementById('app-score').value);
+      const pending = [...appState.tasks].reverse().find((t) => !t.rated);
+      if (!pending) throw new Error('No hay ninguna tarea sin calificar.');
+      if (!pending.clientRight) throw new Error('No se retuvo la Rating Right del cliente.');
+      const rating = await appCall('POST', '/api/ratings', {
+        outpoint: pending.clientRight, raterPkh: pending.clientPkh, score,
+      });
+      pending.rated = true;
+      pending.score = score;
+      renderAppHistory();
+      await loadRatingRights();
+      await loadFacts();
+      showSuccess(`Calificación ${score}/5 asentada on-chain.`);
+    });
+  }
+
+  if (action === 'app-reputation') {
+    withDisabled(button, async () => {
+      const { proPkh } = appPicked();
+      const profile = await appCall('GET', `/api/reputation/${proPkh}`);
+      renderReputation(profile, 'app-reputation-card');
+      renderAppHistory();
+      showSuccess(`Perfil del profesional cargado (avg=${profile.avg ?? '—'}).`);
+    });
+  }
+
+  if (action === 'app-trust') {
+    withDisabled(button, async () => {
+      const { clientPkh, proPkh } = appPicked();
+      await appCall('POST', '/api/trust-links', { trusterPkh: clientPkh, trustedPkh: proPkh });
+      await loadFacts();
+      showSuccess('Confianza declarada on-chain (cliente → profesional).');
+    });
+  }
 });
 
 document.getElementById('rating-score').addEventListener('input', (event) => {
   document.getElementById('rating-score-output').textContent = event.target.value;
+});
+
+document.getElementById('app-score').addEventListener('input', (event) => {
+  document.getElementById('app-score-output').textContent = event.target.value;
 });
 
 async function boot() {

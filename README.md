@@ -34,7 +34,7 @@ También incluye **confirmaciones de plataforma**: una app puede corroborar on-c
 
 [![CI](https://github.com/Mauricio1599/repid/actions/workflows/ci.yml/badge.svg)](https://github.com/Mauricio1599/repid/actions/workflows/ci.yml)
 
-- ✅ **Suite completa**: 66 tests en verde (`npx vitest run`; 48 del protocolo/servidor + 18 end-to-end del servidor).
+- ✅ **Suite completa**: 67 tests en verde (`npx vitest run`; 48 del protocolo/servidor + 19 end-to-end del servidor).
 - ✅ **Modo simulado** (Mock, por defecto) para desarrollar y probar sin red.
 - ✅ **Modo red real** (Chipnet, tBCH) con todas las operaciones de red aisladas en un child process.
 - ✅ **Validación frente a la VM real de Bitcoin**: corrida E2E en Chipnet (2026-09-10, wallet fondeada con 1.015.000 sats de tBCH) — **11/11 PASS**, los 7 hechos del flujo completo broadcast y verificados on-chain. Detalle y txids en `tasks.md` TASK-026.
@@ -88,7 +88,7 @@ npm install
 npm start        # abre http://localhost:3787
 ```
 
-Cada wallet nace con BCH "de juguete"; todo corre en una red simulada local.
+Cada wallet nace con BCH "de juguete"; todo corre en una red simulada local. La consola incluye una pestaña **«App ejemplo»** con una mini-plataforma de freelance (cliente ⇄ profesional → confirmación de plataforma → calificación → reputación) que corre sobre la API cruda del protocolo.
 
 ### 2) Modo red real (Chipnet, tBCH de prueba)
 
@@ -102,7 +102,7 @@ En Chipnet las wallets nacen vacías: hay que pedir tBCH al faucet (manual) y us
 ### 3) Tests
 
 ```bash
-npm test             # suite completa del protocolo (66 tests)
+npm test             # suite completa del protocolo (67 tests)
 npm run test:e2e     # solo el flujo end-to-end del servidor
 ```
 

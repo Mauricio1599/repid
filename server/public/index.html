@@ -113,6 +113,7 @@
       <button class="tab active" data-tab="ledger" role="tab" aria-selected="true">Ledger</button>
       <button class="tab" data-tab="indexer" role="tab" aria-selected="false">Vista indexer</button>
       <button class="tab" data-tab="reputation" role="tab" aria-selected="false">Reputación</button>
+      <button class="tab" data-tab="app" role="tab" aria-selected="false">App ejemplo</button>
     </div>
 
     <div class="tab-panel active" id="tab-ledger">
@@ -151,6 +152,62 @@
       <button data-action="show-reputation">Ver perfil</button>
       <div id="reputation-card" class="reputation-empty">Elegí una wallet y hacé clic en «Ver perfil».</div>
       <p class="hint">Promedio sin ponderar — la ponderación y las políticas anti-sybil quedan en la capa de reputación (fuera de alcance, ver SPEC-006).</p>
+    </div>
+
+    <div class="tab-panel" id="tab-app">
+      <p class="hint">Una mini-plataforma de <strong>freelance</strong> montada sobre la API cruda de RepID: cada tarea ancla un hecho on-chain (el Recibo), la plataforma lo confirma y el cliente califica al profesional. La reputación del profesional crece de verdad, hecho por hecho. Las pestañas «Ledger» y «Vista indexer» muestran el protocolo por detrás en tiempo real.</p>
+
+      <div class="app-step">
+        <h3>1 · Contratar al profesional</h3>
+        <label>Cliente
+          <select id="app-client"></select>
+        </label>
+        <label>Profesional
+          <select id="app-pro"></select>
+        </label>
+        <label>Tarea
+          <select id="app-task">
+            <option value="diseño de logo">Diseño de logo</option>
+            <option value="configuración de servidor">Configuración de servidor</option>
+            <option value="traducción">Traducción al inglés</option>
+          </select>
+        </label>
+        <button data-action="app-hire">Registrar interacción (Recibo on-chain)</button>
+      </div>
+
+      <div class="app-step">
+        <h3>2 · La plataforma confirma</h3>
+        <p class="hint">Una wallet «plataforma» corrobora (con su propio UTXO) que la última tarea ocurrió. Es un hecho independiente: <code>PLATFORM_CONFIRMATION</code>.</p>
+        <label>Validadora (plataforma)
+          <select id="app-platform"></select>
+        </label>
+        <button data-action="app-confirm">Confirmar la última tarea</button>
+      </div>
+
+      <div class="app-step">
+        <h3>3 · El cliente califica</h3>
+        <p class="hint">El cliente gasta su Rating Right (un solo uso) e incluye el puntaje 1–5 en un <code>OP_RETURN</code>. Ese hecho queda en el Ledger como <code>RATING_ISSUED</code>.</p>
+        <label>Puntaje
+          <input type="range" id="app-score" min="1" max="5" step="1" value="5" />
+          <output id="app-score-output">5</output>
+        </label>
+        <button data-action="app-rate">Calificar al profesional</button>
+      </div>
+
+      <div class="app-step">
+        <h3>4 · Reputación del profesional</h3>
+        <button data-action="app-reputation">Ver perfil del profesional</button>
+        <button data-action="app-trust">Cliente → declarar confianza en el profesional</button>
+        <div id="app-reputation-card" class="reputation-empty">Todavía no elegiste un profesional con tareas.</div>
+      </div>
+
+      <h3>Historial de esta sesión de la app</h3>
+      <ul class="store-list" id="app-history">
+        <li>Sin tareas todavía.</li>
+      </ul>
+
+      <h3>Crudo — lo que envía la app a la API</h3>
+      <pre class="app-raw" id="app-raw">Cada acción de la app muestra acá la llamada exacta (método, ruta, payload y respuesta) que disparó.</pre>
     </div>
   </section>
 
