@@ -240,6 +240,8 @@ Hasta acá todo corrió en una **cadena simulada**. También existe un modo que 
 
 > Los pasos 1 y 2 se quedan "esperando" si no hay fondos: no es un error, es que falta la gota del faucet. Cuando la recibiste, la misma dirección ya tiene saldo y el comando rinde.
 
+> **También existe en el repo** (TASK-032): el workflow manual **«chipnet-e2e»** en GitHub Actions (`Actions → chipnet-e2e → Run workflow`) corre exactamente este script en la nube, deja la dirección a fondear en los logs y guarda las wallets como artifact para reintentar. Sirve además como evidencia pública y reproducible de que los contratos corren en la red real.
+
 ### 7.2) La manera manual (por la interfaz, como la sección 4)
 
 1. En la terminal:

@@ -274,3 +274,11 @@
 > **Verificación**: suite completa **67/67** PASS + CI verde.
 >
 > **Nota**: el `confirmedReceipts` de la reputación pertenece al perfil del **cliente** (partyA es el dueño del Recibo), no al del profesional — el test lo verifica con perfiles cruzados.
+
+- [x] **TASK-032** [RFC-005] **E2E Chipnet en GitHub Actions (workflow manual)**: la validación frente a la VM real de Bitcoin queda publicada y reproducible en el repo público. *(Ejecutado 2026-09-11.)*
+
+> **Implementado:**
+> - Nuevo `.github/workflows/chipnet-e2e.yml` (`workflow_dispatch`, manual a propósito: el faucet `tbch.googol.cash` es captcha manual): checkout → Node 22 + `npm ci` → recupera el artifact `data_chipnet_e2e` de una corrida anterior (reintentar sin perder tBCH) → `REPID_NETWORK=chipnet REPID_DATA_DIR=... node scripts/chipnet-e2e.mjs` → sube el artifact con las wallets de prueba (`if: always()`).
+> - Sin fondos, el script corta con código 2 tras mostrar la dirección a fondear (igual que local); el artifact queda guardado para la reintentada.
+>
+> **Verificación**: run real (34560157789) en GitHub — wallet creada en Chipnet (`bchtest:zpu3kqx9du5hnv…`), saldos consultados on-chain, y corte controlado con **exit code 2** y dirección a fondear. Comportamiento esperado: validar el cableado integro (server chipnet → provider → worker → script). Con tBCH en el artifact, un reintento corre el flujo completo 11/11 PASS.

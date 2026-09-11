@@ -37,7 +37,7 @@ También incluye **confirmaciones de plataforma**: una app puede corroborar on-c
 - ✅ **Suite completa**: 67 tests en verde (`npx vitest run`; 48 del protocolo/servidor + 19 end-to-end del servidor).
 - ✅ **Modo simulado** (Mock, por defecto) para desarrollar y probar sin red.
 - ✅ **Modo red real** (Chipnet, tBCH) con todas las operaciones de red aisladas en un child process.
-- ✅ **Validación frente a la VM real de Bitcoin**: corrida E2E en Chipnet (2026-09-10, wallet fondeada con 1.015.000 sats de tBCH) — **11/11 PASS**, los 7 hechos del flujo completo broadcast y verificados on-chain. Detalle y txids en `tasks.md` TASK-026.
+- ✅ **Validación frente a la VM real de Bitcoin**: corrida E2E en Chipnet (2026-09-10, wallet fondeada con 1.015.000 sats de tBCH) — **11/11 PASS**, los 7 hechos del flujo completo broadcast y verificados on-chain. Detalle y txids en `tasks.md` TASK-026. Reproducible por cualquiera desde el workflow manual **`chipnet-e2e`** de GitHub Actions (TASK-032).
 
 ## Arquitectura en una página
 
